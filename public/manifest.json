@@ -1,0 +1,26 @@
+{
+  "name": "对话类漫剧工作流",
+  "short_name": "漫剧工作流",
+  "description": "AI驱动的对话漫剧创作工具",
+  "start_url": "/manju-workflow/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/manju-workflow/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/manju-workflow/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["entertainment", "productivity"],
+  "lang": "zh-CN"
+}
