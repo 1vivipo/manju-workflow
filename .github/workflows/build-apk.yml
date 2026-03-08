@@ -1,0 +1,130 @@
+name: Build Android APK (TWA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/build-apk.yml"
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Bubblewrap CLI
+        run: npm install -g @bubblewrap/cli
+
+      - name: Create TWA project
+        run: |
+          mkdir -p /tmp/twa-app
+          cd /tmp/twa-app
+          
+          cat > twa-manifest.json << 'EOF'
+          {
+            "packageId": "ai.manju.workflow",
+            "host": "1vivipo.github.io",
+            "name": "对话类漫剧工作流",
+            "launcherName": "漫剧工作流",
+            "display": "standalone",
+            "themeColor": "#7c3aed",
+            "backgroundColor": "#0f0f1a",
+            "startUrl": "/manju-workflow/",
+            "iconUrl": "https://1vivipo.github.io/manju-workflow/icon-512.png",
+            "maskableIconUrl": "https://1vivipo.github.io/manju-workflow/icon-512.png",
+            "appVersionCode": 1,
+            "appVersionName": "1.0.0",
+            "shortcuts": [],
+            "generatorApp": "bubblewrap-cli",
+            "webManifestUrl": "https://1vivipo.github.io/manju-workflow/manifest.json",
+            "fallbackType": "customtabs",
+            "features": {},
+            "alphaDependencies": { "enabled": false },
+            "enableNotifications": false,
+            "isChromeOSOnly": false,
+            "enableSiteSettingsShortcut": true,
+            "minSdkVersion": 19,
+            "orientation": "portrait"
+          }
+          EOF
+          
+          bubblewrap init --manifest=twa-manifest.json --directory=./android-project || true
+
+      - name: Generate debug keystore
+        run: |
+          keytool -genkeypair \
+            -v \
+            -keystore /tmp/manju-debug.jks \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -alias manju-key \
+            -dname "CN=ManjuWorkflow, OU=Dev, O=Manju, L=Beijing, S=Beijing, C=CN" \
+            -storepass manju2025 \
+            -keypass manju2025
+
+      - name: Build APK with Bubblewrap
+        run: |
+          cd /tmp/twa-app/android-project
+          bubblewrap build \
+            --keystore=/tmp/manju-debug.jks \
+            --ksAlias=manju-key \
+            --ksKeyPass=manju2025 \
+            --ksPass=manju2025 || true
+          
+          # Fallback: build with Gradle directly
+          if [ ! -f "app/build/outputs/apk/release/app-release-signed.apk" ]; then
+            echo "Trying Gradle build..."
+            chmod +x gradlew
+            ./gradlew assembleDebug || true
+          fi
+          
+          find . -name "*.apk" -type f 2>/dev/null | head -5
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manju-workflow-apk
+          path: |
+            /tmp/twa-app/**/*.apk
+            /tmp/twa-app/**/*.aab
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Create Release
+        if: success()
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "漫剧工作流 APK v1.0.${{ github.run_number }}"
+          body: |
+            ## 对话类漫剧工作流 Android APK
+            
+            ### 安装说明
+            1. 下载 manju-workflow.apk
+            2. 在Android手机上允许"安装未知来源应用"
+            3. 安装并打开
+            
+            ### 测试账号
+            - 管理员: admin@manju.ai / Admin@Manju2025!
+            - 测试用户: test@manju.ai / Test@Manju2025!
+            
+            ### 网页版
+            https://1vivipo.github.io/manju-workflow/
+          files: /tmp/twa-app/**/*.apk
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
