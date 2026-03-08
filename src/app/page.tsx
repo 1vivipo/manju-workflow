@@ -463,7 +463,7 @@ function MainLayout({
           </div>
           {sidebarOpen && (
             <div style={{overflow:'hidden', flex:1}}>
-              <div style={{fontSize:13, fontWeight:600, color:'var(--text)', truncate:'true'}}>{username}</div>
+              <div style={{fontSize:13, fontWeight:600, color:'var(--text)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'}}>{username}</div>
               <div style={{
                 fontSize:11, padding:'1px 6px', background:'linear-gradient(135deg,#7c3aed,#ec4899)',
                 borderRadius:4, color:'#fff', display:'inline-block', marginTop:2
